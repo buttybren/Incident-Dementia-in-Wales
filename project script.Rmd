@@ -1,0 +1,230 @@
+---
+title: "Incident Dementia in Wales: Risk factors"
+author: "Mbuotidem Okomoh"
+date: "2023-08-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#all the libraries used
+library(dplyr)
+library(tidyverse)
+library(skimr)
+library(haven)
+library(data.table)
+#install.packages("gtsummary")
+library(gtsummary)
+#install.packages('here')
+library(here)
+```
+
+
+All the data variables
+for wave 1
+```{r table 3 wave 1, Vascular disease, neurological, other medical history}
+
+names(y)[names(y) == "v396_w1"] <- "Angina"
+names(y)[names(y) == "v397_w1"] <- "Interclaudification"
+names(y)[names(y) == "v399_w1"] <- "highbp"
+names(y)[names(y) == "v409_w1"] <- "diabetes"
+names(y)[names(y) == "v412_w1"] <-"parkinsons"
+names(y)[names(y) == "v418_w1"] <- "stroke"
+names(y)[names(y) == "v423_w1"] <- "heartattack"
+names(y)[names(y) == "v427_w1"] <- "epilepsy"
+names(y)[names(y) == "v429_w1"] <- "headinjury"
+names(y)[names(y) == "v434_w1"] <- "generalanaesthesia"
+names(y)[names(y) == "v423_w1"] <- "heartattack"
+names(y)[names(y) == "v427_w1"] <- "epilepsy"
+names(y)[names(y) == "v436_w1"] <- "chronicbronchitis"
+names(y)[names(y) == "v437_w1"] <- "asthma"
+names(y)[names(y) == "v439_w1"] <- "arthritis"
+names(y)[names(y) == "v441_w1"] <- "headaches"
+names(y)[names(y) == "v443_w1"] <- "pepticulcer"
+names(y)[names(y) == "v444_w1"] <- "perniciousanemia"
+names(y)[names(y) == "v478_w1"] <- "meningitis"
+names(y)[names(y) == "v479_w1"] <- "shingles"
+names(y)[names(y) == "v447_w1"] <- "thyroiddisease"
+names(y)[names(y) == "v500_w1"] <- "smoke"
+```
+
+recoding the risk factor variables
+````{r table 3 wave 1,recoding the disease variables}
+
+ctr <- c( "Angina", "Interclaudification", "highbp", "diabetes", "parkinsons", "arthritis",
+          "stroke", "heartattack", "epilepsy", "headinjury", "generalanaesthesia",
+          "chronicbronchitis", "asthma", "headaches", "pepticulcer", "perniciousanemia")
+
+
+
+table(y$Interclaudification)
+table(y$generalanaesthesia)
+
+for(col_name in ctr){
+  y<- y %>% 
+    mutate_at (vars({{col_name}}), ~ ifelse(. ==1, "yes",
+                          ifelse(.==0, "no","no")))
+}
+
+table(y$Angina)
+```
+
+Recoding multi level risk factors
+```{r wave 1}
+
+#recode thyroid disease to hypo and hyper
+table(y$thyroiddisease)
+y <- y %>%
+  mutate(thyroiddisease = case_when(
+    thyroiddisease == 0 ~ 0,
+    thyroiddisease == 1 | thyroiddisease == 4 ~ 1,
+    thyroiddisease == 2 | thyroiddisease == 5 ~ 2,
+    thyroiddisease == 3 | thyroiddisease == 6 ~ 3,
+    TRUE ~ 0
+  ))
+table(y$thyroiddisease)
+
+y <- y %>%
+  mutate(thyroidall = ifelse(thyroiddisease == 0, 0,
+             ifelse(thyroiddisease %in% 1:3, 1, thyroiddisease)))
+
+table(y$thyroidall)
+
+y$thyroidall <- ifelse(y$thyroidall == 0, "No",
+                ifelse(y$thyroidall == 1, "Yes", y$thyroidall))
+table(y$thyroidall)
+
+y$thyroiddisease <- ifelse(y$thyroiddisease == 0, "No",
+  ifelse(y$thyroiddisease == 1, "Yes, Underactive", 
+  ifelse(y$thyroiddisease == 2, "Yes, Overactive",
+  ifelse(y$thyroiddisease == 3, "Yes, Non Specified",  y$thyroiddisease))))
+
+#recode thyroid disease to yes and no
+table(y$thyroiddisease)
+
+
+
+
+## recode meningitis to yes and no
+table(y$meningitis)
+
+y <- y %>%
+  mutate(meningitisall = ifelse(meningitis == 0, 0,
+             ifelse(meningitis %in% 1:3, 1, 0)))
+
+table(y$meningitisall)
+y$meningitisall <- ifelse(y$meningitisall == 0, "No",
+                ifelse(y$meningitisall == 1, "Yes", y$meningitisall))
+table(y$meningitisall)
+
+y$meningitis <- ifelse(y$meningitis == 0, "No",
+  ifelse(y$meningitis == 1, "Yes, Meningitis", 
+  ifelse(y$meningitis == 2, "Yes, Encephalitis",
+  ifelse(y$meningitis == 3, "Yes, Non Specific",  "No"))))
+
+table(y$meningitis)
+
+
+#recode shingles
+table(y$shingles)
+
+y <- y %>%
+  mutate(shinglesall = case_when(
+    shingles == 0 ~ 0,
+    shingles == 1 | shingles == 2 ~ 1,
+    TRUE ~ 0
+  ))
+
+y$shinglesall <- ifelse(y$shinglesall == 0, "No",
+          ifelse(y$shinglesall == 1, "Yes", "No"))
+
+table(y$shinglesall)
+
+
+y$shingles <- ifelse(y$shingles == 0, "No",
+  ifelse(y$shingles == 1, "Yes, in the body", 
+  ifelse(y$shingles == 2, "Yes, in the head","No")))
+
+table(y$shingles)
+
+
+
+##tia was recorded with those that had either sudden weakness in arm and legs or
+#sudden problems with speech, memory and vision that got better after a day. 
+table(y$v445_w1)
+table(y$v446_w1)
+
+y <- y %>% mutate(tia = ifelse(v445_w1 ==1 | v446_w1 ==1, 1,0))
+table(y$tia)
+
+
+```
+Depression
+```{r}
+##depression
+##d0 no sympthoms, d1-d2 subclinical,  dn3-dn4 – neurotic subtype, dp3-dp4 – psychotic subtype.
+## d0/d1/d2 absent, else present
+table(y$dep_dx_w1)
+
+names(y)[names(y) == "dep_dx_w1"] <- "depression"
+
+table(y$depression)
+y$depgrp <- y$depression
+
+y <- y %>%
+  mutate(depgrp = case_when(
+    depgrp == "d0" ~ 0,
+    depgrp %in% c("d1", "d2") ~ 0,
+    depgrp %in% c("dn3", "dn4") ~ 1,
+    depgrp %in% c("dp3", "dp4") ~ 1,
+    TRUE ~ NA
+  ))
+table(y$depgrp)
+```
+
+General anesthesia count
+```{r}
+table(y$v435_w1)
+
+y <-y %>% 
+  mutate(gacount= if_else(v435_w1 ==0, 0,
+           if_else(v435_w1 ==1, 1,
+           if_else(v435_w1 ==77, 0,
+          if_else(v435_w1 ==88, 0, 
+          if_else(v435_w1 ==99, 0,
+          if_else(v435_w1 >=2 & v435_w1 <=5, 2,3)))))))
+table (y$gacount)
+
+
+y$gacount <- ifelse(y$gacount == 1, "1",
+            ifelse(y$gacount == 2, "2-5",
+            ifelse(y$gacount == 3, "5+", "0")))
+
+#wave 2
+table(z$v419_w2)
+table(z$generalanaesthesia)
+
+z <-z %>% 
+  mutate(gacount=
+    if_else(v419_w2 ==1, 1,
+if_else(v419_w2 >=2 & v419_w2 <= 5, 2,0)))
+table(z$gacount)
+
+
+z$gacount <- ifelse(z$gacount == 1, "1",
+                     ifelse(z$gacount == 2, "2-5", "0"))
+```
+
+Dementia wave 1 &2
+```{r dementia variable}
+table(y$agecat_w1)
+y <- y %>%
+  mutate(dementia = ifelse(agecat_w1 %in% 3:5, 1,0))
+table(y$dementia)
+
+table(z$agecat_w2)
+z <- z %>%
+  mutate(dementia2 = ifelse(agecat_w2 %in% 3:5, 1,0))
+table(z$dementia2)
+```
+
+
